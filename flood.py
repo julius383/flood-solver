@@ -1,3 +1,11 @@
+from icecream import ic
+import heapq
+from PIL import Image, ImageDraw, ImageFont
+import re
+from functools import partial, reduce
+from operator import or_
+
+
 class Grid:
     def __init__(self, grid):
         self._grid = tuple(tuple(row) for row in grid)
@@ -24,9 +32,7 @@ class Grid:
 
     # necessary for using Grid as a dict key
     def __hash__(self):
-        return hash(
-            tuple(self[i, j] for (i, j) in iter(self)) + (self.rows, self.cols)
-        )
+        return hash(tuple(self[i, j] for (i, j) in iter(self)) + (self.rows, self.cols))
 
     # looks odd but we'll see why it's necessary later
     def __lt__(self, other):
@@ -53,17 +59,13 @@ class Grid:
         return (0 <= row < self._rows) and (0 <= col < self._cols)
 
 
-import re
-
 easy = "puzzles/easy_5.txt"
 medi = "puzzles/medium_5.txt"
 hard = "puzzles/hard_5.txt"
 
 
 def parse_header(header):
-    p = re.compile(
-        r"(?P<width>\d{1,2}) by (?P<height>\d{1,2}) -> (?P<mmoves>\d{1,2})"
-    )
+    p = re.compile(r"(?P<width>\d{1,2}) by (?P<height>\d{1,2}) -> (?P<mmoves>\d{1,2})")
     if m := re.match(p, header):
         return {k: int(v) for k, v in m.groupdict().items()}
 
@@ -89,17 +91,13 @@ phard = parse_puzzles(hard)
 peb0 = peasy[0]["board"]
 
 
-from PIL import Image, ImageDraw, ImageFont
-
 color_map = ["red", "yellow", "green", "blue", "orange", "purple"]
 
 
 def show_puzzle(board, highlight=None, cell_width=40, debug=False):
     width = board.cols
     height = board.rows
-    image = Image.new(
-        "RGB", (cell_width * width, cell_width * height), (0, 0, 0)
-    )
+    image = Image.new("RGB", (cell_width * width, cell_width * height), (0, 0, 0))
     draw = ImageDraw.Draw(image)
     fnt = ImageFont.truetype("/usr/share/fonts/TTF/FiraCode-Bold.ttf", size=16)
     y0 = 0
@@ -162,14 +160,9 @@ def find_cluster_containing(position, board):
     return cluster
 
 
-from functools import partial, reduce
-from operator import or_
-
-
 def find_cluster_neighbours(cluster, board):
     return (
-        set(reduce(or_, map(partial(find_neighbours, board=board), cluster)))
-        - cluster
+        set(reduce(or_, map(partial(find_neighbours, board=board), cluster))) - cluster
     )
 
 
@@ -209,10 +202,6 @@ def play(board):
     return
 
 
-import heapq
-from icecream import ic
-
-
 def find_all_clusters(board):
     positions = set(iter(board))
     while positions:
@@ -247,15 +236,10 @@ def a_star_solve(initial_board, heuristic=cluster_count):
 
         cluster = find_cluster_containing((0, 0), current)
         # valid moves
-        maybe_colors = {
-            current[x] for x in find_cluster_neighbours(cluster, current)
-        }
+        maybe_colors = {current[x] for x in find_cluster_neighbours(cluster, current)}
         for next_board in [move(c, current) for c in maybe_colors]:
             tentative_g_score = g_score[current] + 1
-            if (
-                next_board not in g_score
-                or tentative_g_score < g_score[next_board]
-            ):
+            if next_board not in g_score or tentative_g_score < g_score[next_board]:
                 came_from[next_board] = current
                 g_score[next_board] = tentative_g_score
                 f_score[next_board] = tentative_g_score + heuristic(next_board)
