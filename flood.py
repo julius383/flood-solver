@@ -1,9 +1,10 @@
-from icecream import ic
 import heapq
-from PIL import Image, ImageDraw, ImageFont
 import re
 from functools import partial, reduce
 from operator import or_
+
+from icecream import ic
+from PIL import Image, ImageDraw, ImageFont
 
 
 class Grid:
@@ -90,7 +91,6 @@ phard = parse_puzzles(hard)
 
 peb0 = peasy[0]["board"]
 
-
 color_map = ["red", "yellow", "green", "blue", "orange", "purple"]
 
 
@@ -166,6 +166,13 @@ def find_cluster_neighbours(cluster, board):
     )
 
 
+def find_cluster_neighbours2(cluster, board):
+    res = set()
+    for i in cluster:
+        res |= find_neighbours(i, board)
+    return res - cluster
+
+
 c1 = find_cluster_containing((7, 9), peb0)
 i1 = show_puzzle(peb0, debug=True, highlight=find_cluster_neighbours(c1, peb0))
 
@@ -211,6 +218,7 @@ def find_all_clusters(board):
         yield c
 
 
+# the heuristic function
 def cluster_count(board):
     main = find_cluster_containing((0, 0), board)
     count = 0
@@ -263,3 +271,52 @@ def reconstruct_path(came_from, current):
 
 def is_solved(board):
     return len(set(board[i, j] for (i, j) in board)) == 1
+
+
+sol = a_star_solve(
+    peb0
+)  # [2, 0, 5, 0, 1, 4, 5, 2, 0, 4, 1, 3, 5, 2, 0, 1, 4, 3, 5, 0, 2, 3]
+b = peb0
+
+
+def show_solution(sol, board, outfile="solve.gif"):
+    imgs = []
+    b = board
+    for c in sol:
+        b = move(c, b)
+        imgs.append(show_puzzle(b))
+    imgs[0].save(
+        outfile, save_all=True, append_images=imgs[1:], optimize=False, duration=500
+    )
+
+
+show_solution(sol, peb0, "easy-1-solve.gif")
+
+
+def generate_data(puzzles, difficulty="easy"):
+    data = []
+    for i, p in enumerate(puzzles):
+        data.extend(
+            [
+                {
+                    "difficulty": difficulty,
+                    "type": "expected",
+                    "value": p["mmoves"],
+                    "index": i,
+                },
+                {
+                    "difficulty": difficulty,
+                    "type": "actual",
+                    "value": len(a_star_solve(p["board"])),
+                    "index": i,
+                },
+            ]
+        )
+    return data
+
+
+data = (
+    generate_data(peasy, "easy")
+    + generate_data(pmedi, "medium")
+    + generate_data(phard, "hard")
+)
